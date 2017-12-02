@@ -1,0 +1,13 @@
+-cp source
+-main mp.GameServer
+
+--each
+
+-neko bin/gameserver/neko/gameserver.n
+#-js bin/server/js/server.js
+#-lib haxe-ws
+#-lib hxnodejs
+
+#--next 
+
+#-cpp bin/gameserver/cpp

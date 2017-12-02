@@ -1,0 +1,15 @@
+-cp source
+-main mp.MasterServer
+
+--each
+
+-neko bin/masterserver/neko/masterserver.n
+#-lib haxe-ws
+#-js bin/server/js/server.js
+#-lib haxe-ws
+#-lib hxnodejs
+
+--next 
+
+-cpp bin/masterserver/cpp
+#-lib haxe-ws
