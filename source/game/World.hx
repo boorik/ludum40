@@ -12,6 +12,15 @@ class World {
 	
 	// counter for the object IDs
 	var count:Int = 0;
+	
+	//collision calculation helpers
+	var w = .0;
+	var h = .0;
+	var dx = .0;
+	var dy = .0;
+	var wy = .0;
+	var hx = .0;
+	
 
 	public function new() {
 		size = {
@@ -40,7 +49,8 @@ class World {
 			id: count++,
 			type: Player,
 			color: 0xfffffff,
-			size: 40,
+			width: 40,
+			height:40,
 			dir: Math.random() * Math.PI * 2,
 			speed: 3,
 			x: Std.random(size.width),
@@ -54,7 +64,8 @@ class World {
 			id: count++,
 			type: Ai,
 			color: Std.random(1 << 24),
-			size: 40,
+			width: 40,
+			height: 40,
 			dir: Math.random() * Math.PI * 2,
 			speed: 1,
 			x: Std.random(size.width),
@@ -68,7 +79,8 @@ class World {
 			id: count++,
 			type: Food,
 			color: Std.random(1 << 24),
-			size: 10,
+			width: 10,
+			height: 10,
 			dir: Math.random() * Math.PI * 2,
 			speed: 0,
 			x: Std.random(size.width),
@@ -91,9 +103,70 @@ class World {
 		
 		// detect collisions and make larger objects consume smaller objects
 		var removed = [];
-
-		for(object in objects) {
-			for(other in objects) {
+		
+		for (object in objects) 
+		{
+			for (other in objects) 
+			{
+				if (object.id == other.id)
+					continue;
+				
+				//source Minkowski addition
+				w = .5 * (object.width + other.width);
+				h = .5 * (object.height + other.height);
+				dx = object.x - other.x;
+				dy = object.y - other.y;
+				
+				if (Math.abs(dx) <= w && Math.abs(dy) <= h)
+				{
+					//collision
+					switch(object.type)
+					{
+						case Player,Ai:
+							switch(other.type)
+							{
+								case Player,Ai:
+									//calculate collision side for separation
+									wy = w * dy;
+									hx = h * dx;
+									
+									if (wy > hx)
+									{
+										if (wy > -hx)
+										{
+											//collision at the top
+											object.y -= Math.sin(object.dir) * object.speed;
+											
+										}
+										else
+										{
+											//collision on the left
+											object.x -= Math.cos(object.dir) * object.speed;
+										}
+									}
+									else
+									{
+										if (wy > - hx)
+										{
+											//right
+											object.x -= Math.cos(object.dir) * object.speed;
+											
+										}
+										else
+										{
+											//bottom
+											object.y -= Math.sin(object.dir) * object.speed;
+										}
+									}
+								case Food:
+									removed.push(other);
+							}
+						case Food:
+					}
+					
+				}
+				
+				/*
 				if(object.size > other.size) {
 					var dx = object.x - other.x;
 					var dy = object.y - other.y;
@@ -107,6 +180,7 @@ class World {
 						object.size += other.size * 0.1;
 					}
 				}
+				*/
 			}
 		}
 		
