@@ -2,10 +2,33 @@ package game;
 
 @:keep
 enum ObjectType {
-	Player;
-	Ai;
-	Food;
+	Player(props:PlayerProps);
+	Ai(props:PlayerProps);
+	Baby(props:BabyProps);
+	Collectible(type:CollectibleType);
+	Wall;
 }
+
+enum CollectibleType
+{
+	Nappy;
+	Bottle;
+	Comforter;
+}
+
+typedef PlayerProps = {
+	name:String,
+	score:Int,
+	nappyCount:Int,
+	comforterCount:Int,
+	bottleCount:Int
+}
+
+typedef BabyProps = {
+	need : Null<CollectibleType>,
+	since : Float
+}
+	
 
 typedef Object = {
 	id:Int,

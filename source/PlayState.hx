@@ -1,8 +1,11 @@
 package;
 
+import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
+import flixel.group.FlxGroup;
+import flixel.math.FlxRect;
 import flixel.text.FlxText;
 import flixel.ui.FlxButton;
 import flixel.math.FlxMath;
@@ -39,23 +42,68 @@ class PlayState extends FlxState
 	var worldTreat:Float;
 	var stateUpdate:Float;
 
+	//layers
+	var entities:FlxGroup;
+	var hud:HUD;
+	
+	var bottleCounter:flixel.text.FlxText;
+	var comforterCounter:flixel.text.FlxText;
+	var nappyCounter:flixel.text.FlxText;
+	var overlayCamera:flixel.FlxCamera;
+	var hudCam:flixel.FlxCamera;
+	var deadzoneOverlay:flixel.FlxSprite;
+	
 	override public function create():Void
 	{
 		//debug
 		FlxG.watch.add(this,'worldUpdateTime');
 		FlxG.watch.add(this,'worldTreat');
-		FlxG.watch.add(this,'stateUpdate');
+		FlxG.watch.add(this, 'stateUpdate');
+		
+		FlxG.camera.zoom = 1.5;
 
 		trace("built at " + BuildInfo.getBuildDate());
 
 		statusText = new FlxText(0,0,300,"Connecting, please wait...");
 		statusText.setFormat(20,flixel.util.FlxColor.WHITE);
 		statusText.screenCenter();
-		add(statusText);
+		
+		var floor = new FlxSprite(0, 0);
+		floor.makeGraphic(1000, 1000, FlxColor.GRAY);
+		add(floor);
+		
+		entities = new FlxGroup();
+		add(entities);
+		
+		hud = new HUD();
+		add(hud);
+
+		//var hudCamera = new FlxCamera(0, 0, FlxG.width, FlxG.height, 1  );
+		//hudCamera.bgColor = FlxColor.TRANSPARENT;
+		//FlxG.cameras.add(hudCamera);
+		
+		// Camera Overlay
+		//deadzoneOverlay = new FlxSprite(-10000, -10000);
+		//deadzoneOverlay.makeGraphic(FlxG.width, FlxG.height, FlxColor.TRANSPARENT, true);
+		//deadzoneOverlay.antialiasing = true;
+//
+		//overlayCamera = new FlxCamera(0, 0, 640, 720);
+		//overlayCamera.bgColor = FlxColor.TRANSPARENT;
+		//overlayCamera.follow(deadzoneOverlay);
+		//FlxG.cameras.add(overlayCamera);
+		//add(deadzoneOverlay);
+		
+		//FlxG.camera.setScrollBoundsRect(LEVEL_MIN_X, LEVEL_MIN_Y,
+		//LEVEL_MAX_X + Math.abs(LEVEL_MIN_X), LEVEL_MAX_Y + Math.abs(LEVEL_MIN_Y), true);
+		//FlxG.camera.follow(orb, LOCKON, 1);
+
+
 
 		sprites = new IntMap<FlxSprite>();
 		if(Globals.online)
 		{
+			add(statusText);
+			
 			try{
 				ws = haxe.net.WebSocket.create('ws://${Globals.game.host}:${Globals.game.port}');
 			}
@@ -63,7 +111,7 @@ class PlayState extends FlxState
 			{
 				Globals.online = false;
 			}
-			ws.onopen = function() ws.sendString(Serializer.run(Join));
+			ws.onopen = function() ws.sendString(Serializer.run(Join('need impl')));
 			ws.onmessageString = function(msg) {
 				var msg:Message = Unserializer.run(msg);
 				switch msg {
@@ -86,9 +134,51 @@ class PlayState extends FlxState
 		else
 		{
 			world = new World();
-			id = world.createPlayer().id;
+			id = world.createPlayer('ME').id;
 		}
+		
 		super.create();
+	}
+	
+	function addHud()
+	{
+		//drawDeadzone(); // now that deadzone is present
+		
+		hudCam = new FlxCamera(0, 0, hud.width, hud.height);
+		hudCam.zoom = 1; // For 1/2 zoom out.
+		hudCam.follow(hud.background, FlxCameraFollowStyle.NO_DEAD_ZONE);
+		hudCam.alpha = .5;
+		FlxG.cameras.add(hudCam);
+	}
+	
+	function drawDeadzone() 
+	{
+		deadzoneOverlay.fill(FlxColor.TRANSPARENT);
+		var dz:FlxRect = FlxG.camera.deadzone;
+		if (dz == null)
+			return;
+
+		var lineLength:Int = 20;
+		var lineStyle:LineStyle = { color: FlxColor.WHITE, thickness: 3 };
+		
+		// adjust points slightly so lines will be visible when at screen edges
+		dz.x += lineStyle.thickness / 2;
+		dz.width -= lineStyle.thickness;
+		dz.y += lineStyle.thickness / 2;
+		dz.height -= lineStyle.thickness;
+		
+		// Left Up Corner
+		deadzoneOverlay.drawLine(dz.left, dz.top, dz.left + lineLength, dz.top, lineStyle);
+		deadzoneOverlay.drawLine(dz.left, dz.top, dz.left, dz.top + lineLength, lineStyle);
+		// Right Up Corner
+		deadzoneOverlay.drawLine(dz.right, dz.top, dz.right - lineLength, dz.top, lineStyle);
+		deadzoneOverlay.drawLine(dz.right, dz.top, dz.right, dz.top + lineLength, lineStyle);
+		// Bottom Left Corner
+		deadzoneOverlay.drawLine(dz.left, dz.bottom, dz.left + lineLength, dz.bottom, lineStyle);
+		deadzoneOverlay.drawLine(dz.left, dz.bottom, dz.left, dz.bottom - lineLength, lineStyle);
+		// Bottom Right Corner
+		deadzoneOverlay.drawLine(dz.right, dz.bottom, dz.right - lineLength, dz.bottom, lineStyle);
+		deadzoneOverlay.drawLine(dz.right, dz.bottom, dz.right, dz.bottom - lineLength, lineStyle);
 	}
 
 	function showServerUnreachable()
@@ -162,50 +252,77 @@ class PlayState extends FlxState
 				{
 					player.speed = 0;
 				}
-			}
-
-			// update camera
-			var scale = player.width / 40;
-			
-			if(FlxG.camera.zoom != scale)
-			{
-				flixel.tweens.FlxTween.tween(FlxG.camera, {zoom: 1/scale},.5);				
-			}
+			}			
 		}
 		var bo = Timer.stamp();
 		for(object in state.objects) 
 		{
-			var s:FlxSprite;
+			var s:FlxSprite = null;
 			if(!sprites.exists(object.id))
 			{
-				trace(object);
-				s = cast recycle(FlxSprite);
-				if(object.id == id)
+				switch(object.type)
 				{
-					trace("PLAYER FOUND");
-					s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.RED);
-					FlxG.camera.follow(s);
+					case Player(pp), Ai(pp):
+						trace(object);
+						s = cast entities.recycle(FlxSprite);
+						if(object.id == id)
+						{
+							trace("PLAYER FOUND");
+							s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.RED);
+							FlxG.camera.follow(s);
+							addHud();
+						}
 
-				}else
-					s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.fromInt(object.color + 0xFF000000));
+						else
+							s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.fromInt(object.color + 0xFF000000));
+					
+					case Collectible(ct):
+						s = new CollectibleSprite(0, 0, ct);
+						
+					case Baby(pp):
+						s = cast entities.recycle(BabySprite);
+						
+					case Wall:
+						s = cast entities.recycle(FlxSprite);
+						s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.BLACK);
+				}	
 				s.setPosition(object.x, object.y);
-				add(s);
+				entities.add(s);
+				
+
 				sprites.set(object.id,s);
 
 			}
 			else
 			{
 				s = sprites.get(object.id);
+				switch(object.type)
+				{
+					case Player(pp), Ai(pp):
+						if (object.id == id)
+						{
+							//GUI update
+							hud.updateVar(pp);
+						}
+					case Baby(bp):
+						if (bp.need != null)
+						{	
+							s.animation.play("crying");
+						}
+						else
+						if (object.speed == 0)
+						{
+							s.animation.play("idle");
+						}
+						else
+							s.animation.play("moving");
+					default:
+				}
+				
 				s.setPosition(object.x, object.y);
 				flixel.tweens.FlxTween.tween(s,{x:object.x,y:object.y});
 			}
 
-			if(object.type == game.ObjectType.Player || object.type == game.ObjectType.Ai)
-			{
-				var scale = object.width / 40;
-				if(s.scale.x != scale)
-					flixel.tweens.FlxTween.tween(s.scale,{x:scale, y:scale},0.5);
-			}
 		}
 		worldTreat = Timer.stamp()-bo;
 		for(object in state.removed)
@@ -215,7 +332,7 @@ class PlayState extends FlxState
 				trace('removing ${object.id}');
 				var s = sprites.get(object.id);
 				s.kill();
-				remove(s);
+				entities.remove(s);
 				sprites.remove(object.id);
 			}else{
 				trace('object ${object.id} not found');

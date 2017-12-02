@@ -134,13 +134,13 @@ class GameServer {
 								return;
 							}
 							switch command {
-								case Join:
+								case Join(name):
 									if(world.playerNumber < world.maxPlayer)
 									{
 										var peer = cast(websocket,WebSocketGeneric).socket.peer().host.toString();
-										log('$peer joined the game');
+										log('$name $peer joined the game');
 										if(client.player == null)
-											client.player = world.createPlayer();
+											client.player = world.createPlayer(name);
 
 										var msg = Serializer.run(Joined(client.player.id));
 										client.connection.sendString(msg);
