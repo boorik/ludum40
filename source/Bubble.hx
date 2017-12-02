@@ -1,5 +1,6 @@
 package;
 import flixel.FlxSprite;
+import game.Object.CollectibleType;
 
 /**
  * ...
@@ -7,7 +8,6 @@ import flixel.FlxSprite;
  */
 class Bubble extends FlxSprite
 {
-
 	public function new(X:Float,Y:Float) 
 	{
 		super(X, Y);

@@ -8,7 +8,8 @@ import game.Object.CollectibleType;
  */
 class BabySprite extends flixel.FlxSprite
 {
-	public var bubble:FlxSprite;
+	public var linkedObjects:Array<FlxSprite> = [];
+	public var need:Null<CollectibleType>;
 	public function new(X:Float,Y:Float) 
 	{
 		super(X, Y);

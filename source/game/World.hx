@@ -209,16 +209,27 @@ class World {
 				object.y += Math.sin(object.dir) * object.speed;
 				
 				if (object.x < 0)
+				{
 					object.x = 0;
+					object.dir = Math.random() * Math.PI * 2;
+				}	
 				else
 				if (object.x > size.width)
+				{
 					object.x = size.width;
-					
+					object.dir = Math.random() * Math.PI * 2;
+				}	
 				if (object.y < 0)
+				{
 					object.y = 0;
+					object.dir = Math.random() * Math.PI * 2;
+				}
 				else
 				if (object.y > size.height)
+				{
 					object.y = size.height;
+					object.dir = Math.random() * Math.PI * 2;
+				}
 			}
 		}
 		

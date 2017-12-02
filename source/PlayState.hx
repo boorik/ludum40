@@ -60,7 +60,7 @@ class PlayState extends FlxState
 		FlxG.watch.add(this,'worldTreat');
 		FlxG.watch.add(this, 'stateUpdate');
 		
-		FlxG.camera.zoom = 1.5;
+		FlxG.camera.zoom = 2;
 
 		trace("built at " + BuildInfo.getBuildDate());
 
@@ -77,27 +77,6 @@ class PlayState extends FlxState
 		
 		hud = new HUD();
 		add(hud);
-
-		//var hudCamera = new FlxCamera(0, 0, FlxG.width, FlxG.height, 1  );
-		//hudCamera.bgColor = FlxColor.TRANSPARENT;
-		//FlxG.cameras.add(hudCamera);
-		
-		// Camera Overlay
-		//deadzoneOverlay = new FlxSprite(-10000, -10000);
-		//deadzoneOverlay.makeGraphic(FlxG.width, FlxG.height, FlxColor.TRANSPARENT, true);
-		//deadzoneOverlay.antialiasing = true;
-//
-		//overlayCamera = new FlxCamera(0, 0, 640, 720);
-		//overlayCamera.bgColor = FlxColor.TRANSPARENT;
-		//overlayCamera.follow(deadzoneOverlay);
-		//FlxG.cameras.add(overlayCamera);
-		//add(deadzoneOverlay);
-		
-		//FlxG.camera.setScrollBoundsRect(LEVEL_MIN_X, LEVEL_MIN_Y,
-		//LEVEL_MAX_X + Math.abs(LEVEL_MIN_X), LEVEL_MAX_Y + Math.abs(LEVEL_MIN_Y), true);
-		//FlxG.camera.follow(orb, LOCKON, 1);
-
-
 
 		sprites = new IntMap<FlxSprite>();
 		if(Globals.online)
@@ -142,8 +121,6 @@ class PlayState extends FlxState
 	
 	function addHud()
 	{
-		//drawDeadzone(); // now that deadzone is present
-		
 		hudCam = new FlxCamera(0, 0, hud.width, hud.height);
 		hudCam.zoom = 1; // For 1/2 zoom out.
 		hudCam.follow(hud.background, FlxCameraFollowStyle.NO_DEAD_ZONE);
@@ -296,6 +273,7 @@ class PlayState extends FlxState
 			else
 			{
 				s = sprites.get(object.id);
+				s.setPosition(object.x, object.y);
 				switch(object.type)
 				{
 					case Player(pp), Ai(pp):
@@ -305,22 +283,45 @@ class PlayState extends FlxState
 							hud.updateVar(pp);
 						}
 					case Baby(bp):
+						var bb:BabySprite = cast s;
 						if (bp.need != null)
 						{	
-							s.animation.play("crying");
+							
+							if (bb.need == null)
+							{
+								bb.animation.play("crying");
+								
+								var bubble = new Bubble(bb.x, bb.y - 32);
+								entities.add(bubble);
+								bb.linkedObjects.push(bubble);
+								var n = new CollectibleSprite(bb.x, bb.y - 32, bp.need);
+								entities.add(n);
+								bb.linkedObjects.push(n);
+								bb.need = bp.need;
+							}
 						}
 						else
-						if (object.speed == 0)
 						{
-							s.animation.play("idle");
+							if (bb.need != null)
+							{
+								bb.need = null;
+								while (bb.linkedObjects.length > 0)
+									entities.remove(bb.linkedObjects.pop());
+								//FEEDBACK NEEDED BABY IS OK
+								
+							}
+							if (object.speed == 0)
+							{
+								s.animation.play("idle");
+							}
+							else
+								s.animation.play("moving");
 						}
-						else
-							s.animation.play("moving");
 					default:
 				}
 				
-				s.setPosition(object.x, object.y);
-				flixel.tweens.FlxTween.tween(s,{x:object.x,y:object.y});
+				
+				//lixel.tweens.FlxTween.tween(s,{x:object.x,y:object.y});
 			}
 
 		}
