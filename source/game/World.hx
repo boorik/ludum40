@@ -42,7 +42,7 @@ class World {
 		var enums = Type.allEnums(CollectibleType);
 		for (i in 0...10) createCollectible(enums[Std.random(enums.length)]);
 		for (i in 0...10) createBaby();
-		//for (i in 0...5)	createWall();
+		for (i in 0...5) createWall();
 		
 		lastUpdateTime = Timer.stamp();
 	}
@@ -168,7 +168,6 @@ class World {
 						
 				case Baby(props) :
 
-					trace("BABY");
 					if (props.need == null)
 					{
 						//do i start to cry?
@@ -176,7 +175,6 @@ class World {
 						{
 							var enums = Type.allEnums(CollectibleType);
 							props.need = enums[Std.random(enums.length)];
-							trace(props.need );
 							object.speed = 0;
 						}
 						else
