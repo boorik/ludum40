@@ -47,7 +47,7 @@
 
 	<!-- ______________________________ Haxedefines _____________________________ -->
 
-	
+	<haxeflag name="--no-traces" unless="debug" />
 	<!--Enable the Flixel core recording system-->
 	<!--<haxedef name="FLX_RECORD" />-->
 

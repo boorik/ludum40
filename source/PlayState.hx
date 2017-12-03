@@ -45,9 +45,11 @@ class PlayState extends FlxState
 	var lastStatus = ENDED;
 	
 	//debug var
-	var worldUpdateTime:Float;
+	var pendingStates = 0;
+	var avPendingStates = .0;
 	var worldTreat:Float;
 	var stateUpdate:Float;
+	var updateCount:Int; //for some sort of median
 
 	//layers
 	var entities:FlxGroup;
@@ -62,12 +64,12 @@ class PlayState extends FlxState
 	
 	var explosionsEmitters:FlxTypedGroup<FlxEmitter>;
 	
+	//online
+	var states:Array<GameState>;
 	override public function create():Void
 	{
 		//debug
-		FlxG.watch.add(this,'worldUpdateTime');
-		FlxG.watch.add(this,'worldTreat');
-		FlxG.watch.add(this, 'stateUpdate');
+		FlxG.watch.add(this,'avPendingStates');
 
 		FlxG.camera.zoom = 2;
 		//FlxG.camera.bgColor = 0x55FF80C0;
@@ -101,6 +103,7 @@ class PlayState extends FlxState
 		sprites = new IntMap<FlxSprite>();
 		if(Globals.online)
 		{
+			states = [];
 			add(statusText);
 			
 			try{
@@ -123,7 +126,7 @@ class PlayState extends FlxState
 					case Full:
 						trace('Unable to join, the game is full');
 					case State(state): 
-						this.state = state;
+						this.states.push(state);
 					default:
 						trace('not supposed to get $msg');
 				}
@@ -163,7 +166,6 @@ class PlayState extends FlxState
 		if(FlxG.keys.justPressed.ESCAPE)
 			exit();
 		
-		var su = Timer.stamp();
 		if(Globals.online)
 		{
 			if(!wsError)
@@ -176,17 +178,23 @@ class PlayState extends FlxState
 					wsError = true;
 				}
 			}
+			pendingStates += states.length;
+			if(states.length > 0)
+			{	
+				state = states.shift();
+			}
 			if(state == null)// not ready
 			{
 				super.update(elapsed);
 				return;
-			}  
+			}
+			
+
 		}
 		else
 		{
 			var b = Timer.stamp();
 			state = world.update();
-			worldUpdateTime = Timer.stamp() - b;
 		}
 		
 		switch(state.status)
@@ -211,7 +219,6 @@ class PlayState extends FlxState
 		// handle move
 		handlePlayerInput();
 		
-		var bo = Timer.stamp();
 		for(object in state.objects) 
 		{
 			var s:FlxSprite = null;
@@ -289,20 +296,25 @@ class PlayState extends FlxState
 			}
 
 		}
-		worldTreat = Timer.stamp()-bo;
+
 		for(object in state.removed)
 		{
 			if(sprites.exists(object.id))
 			{
-				//trace('removing ${object.id}');
+				trace('removing ${object.id}');
 				var s = sprites.get(object.id);
 				s.kill();
 				//entities.remove(s);
 				sprites.remove(object.id);
 			}else{
 				trace('object ${object.id} not found');
+				trace(sprites.toString());
 			}
 		}
+		state = null;
+
+		updateStats();
+
 		super.update(elapsed);
 		try{
 		entities.sort(cast FlxSort.byY, FlxSort.ASCENDING);
@@ -310,7 +322,17 @@ class PlayState extends FlxState
 		{
 			trace(entities.toString());
 		}
-		stateUpdate = Timer.stamp() - su;
+	}
+
+	inline function updateStats()
+	{
+		updateCount++;
+		if(updateCount == 10)
+		{
+			avPendingStates = pendingStates / 10;
+			pendingStates = 0;
+			updateCount = 0;
+		}
 	}
 	
 	function shitExplosion(X:Float,Y:Float)
@@ -388,12 +410,10 @@ class PlayState extends FlxState
 					trace("PLAYER FOUND");
 					ps = new PlayerSprite(0, 0, "ME", 0xFF0000);
 					FlxG.camera.follow(ps,1);
-					//addHudCam();
 				}
 				else	
 					ps = new PlayerSprite(0, 0, pp.name,object.color);
 					
-				//entities.add(ps.nameText);
 				s = ps;
 			
 			case Collectible(ct):
@@ -411,10 +431,8 @@ class PlayState extends FlxState
 		}	
 		s.setPosition(object.x, object.y);
 		entities.add(s);
-		
-
 		sprites.set(object.id,s);
-
+		trace('object ${object.id} created ${sprites.count()}');
 	}
 
 	function exit()
