@@ -103,11 +103,14 @@ class PlayState extends FlxState
 			{
 				Globals.online = false;
 			}
-			ws.onopen = function() ws.sendString(Serializer.run(Join('need impl')));
+			ws.onopen = function() ws.sendString(
+				Serializer.run(Join(Globals.name))
+			);
 			ws.onmessageString = function(msg) {
 				var msg:Message = Unserializer.run(msg);
 				switch msg {
 					case Joined(id): 
+						statusText.kill();
 						trace('Game joined, player id: $id');
 						this.id = id;
 					case Full:
@@ -192,7 +195,7 @@ class PlayState extends FlxState
 			case ENDED :
 				if (lastStatus != ENDED)
 				{
-					hud.showAnnounce("GAME OVER");
+					hud.showEndMsg();
 				}
 				lastStatus = ENDED;
 		}

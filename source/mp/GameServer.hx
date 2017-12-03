@@ -47,7 +47,7 @@ class GameServer {
 
 		var cpt = 0;
 		//game server sockets
-		var ws = WebSocketServer.create('0.0.0.0', port, 5000, true);
+		var ws = WebSocketServer.create('0.0.0.0', port, 5000, false);
 
 		//master server connection
 		var msc = WebSocket.create('ws://$masterAdress:$masterPort');

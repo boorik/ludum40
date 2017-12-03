@@ -2,6 +2,7 @@ package;
 
 import flixel.FlxG;
 import flixel.FlxState;
+import flixel.addons.ui.FlxInputText;
 import flixel.text.FlxText;
 import flixel.util.FlxColor;
 import game.GameDesc;
@@ -18,6 +19,8 @@ class ServerBrowserState extends FlxState
     var wsError = false;
     var posY = 300;
 	var gameList:Array<GameDesc>;
+	var num:String;
+	var nickText:FlxInputText;
 	override public function create():Void
 	{
 		super.create();
@@ -25,8 +28,17 @@ class ServerBrowserState extends FlxState
         FlxG.camera.bgColor = FlxColor.BLACK;
 
         statusText = new FlxText(0,0,FlxG.width,"Connecting to master server...");
-        statusText.setFormat(12,flixel.util.FlxColor.WHITE);
+        statusText.setFormat(12,flixel.util.FlxColor.BLACK);
         add(statusText);
+		
+		var nickLabel = new FlxText(10, FlxG.height - 100, 0, "Enter your pseudo :", 12 );
+		nickLabel.setFormat(12,flixel.util.FlxColor.BLACK);
+		add(nickLabel);
+		var stampstring = Std.string(Timer.stamp());
+		num = stampstring.substr(stampstring.length - 3);
+		nickText = new FlxInputText(nickLabel.x + nickLabel.width, nickLabel.y, 200, 'human n°$num', 12);
+		add(nickText);
+		
         var backButton = tools.UITools.getButton(10, FlxG.height - 50, 200, 40, "Back to title",function(){
             FlxG.switchState(new MenuState());
         });
@@ -75,6 +87,7 @@ class ServerBrowserState extends FlxState
                         var gameButton = tools.UITools.getButton(0,posY,500,50,'${g.name} ${g.playerNumber}/${g.maxPlayer} , latency :', function(){
                             Globals.online = true;
                             Globals.game = g;
+							Globals.name = (nickText.text == "")? 'lamer n°$num' : nickText.text;
                             FlxG.switchState(new PlayState());
                         });
                         gameButton.screenCenter(flixel.util.FlxAxes.X);

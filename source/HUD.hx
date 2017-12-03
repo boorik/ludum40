@@ -34,6 +34,7 @@ class HUD extends FlxGroup
 	var x = 10000;
 	var timerText:flixel.text.FlxText;
 	var trapCounter:flixel.text.FlxText;
+	var me:PlayerProps;
 	public function new() 
 	{
 		super();
@@ -105,15 +106,34 @@ class HUD extends FlxGroup
 		add(timerText);
 	}
 	
-	public function showAnnounce(msg:String)
+	public function showAnnounce(msg:String, time:Int = 500)
 	{
 		trace(msg);
 		announce.text = msg;
 		announce.x = x + (FlxG.width - announce.width) / 2;
 		FlxTween.tween(announce, {y: 320}, .5, {onComplete:function(tw:FlxTween)
 			{
-				Timer.delay(function(){announce.y = -200; }, 500);
+				Timer.delay(function(){announce.y = -200; }, time);
 		}});
+	}
+	
+	function getMyRank():{rank:Int, score:Int}
+	{
+		for (i in 0...scores.length)
+		{
+			var pp = scores[i];
+			if (pp.name == me.name)
+			{
+				return {rank:i + 1, score:pp.score};
+			}
+		}
+		return null;
+	}
+	
+	public function showEndMsg()
+	{
+		var r = getMyRank();
+		showAnnounce('GAME OVER\n Rank:${r.rank} score:${r.score}', 4000);
 	}
 	
 	public function updateRanking(pp:PlayerProps)
@@ -170,6 +190,7 @@ class HUD extends FlxGroup
 	
 	public function updateVar(pp:PlayerProps)
 	{
+		me = pp;
 		bottleCounter.text = Std.string(pp.bottleCount);
 		comforterCounter.text = Std.string(pp.comforterCount);
 		nappyCounter.text = Std.string(pp.nappyCount);
