@@ -6,5 +6,6 @@ enum Command {
 	SetDirection(dir:Float);
 	StartMove;
 	StopMove;
+	DropTrap;
 	Ping;
 }

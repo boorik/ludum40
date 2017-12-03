@@ -7,6 +7,7 @@ enum ObjectType {
 	Baby(props:BabyProps);
 	Collectible(type:CollectibleType);
 	Wall;
+	Trap;
 }
 
 enum CollectibleType
@@ -21,7 +22,9 @@ typedef PlayerProps = {
 	score:Int,
 	nappyCount:Int,
 	comforterCount:Int,
-	bottleCount:Int
+	bottleCount:Int,
+	trapCount:Int,
+	stun:Float
 }
 
 typedef BabyProps = {

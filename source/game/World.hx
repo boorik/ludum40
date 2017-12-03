@@ -1,9 +1,20 @@
 package game;
+import game.GameState.GameStatus;
 import game.Object.CollectibleType;
 import haxe.Timer;
 
 
 class World {
+	
+	//consts
+	static inline var babyBaseSpeed = 2;
+	static inline var GAME_TIME = 60.;
+	
+	
+	//game status
+	var status:GameStatus;
+	var remainingTime:Float;
+	
 	// list of active game objects
 	public var objects:Array<Object> = [];
 	public var playerNumber(default,null) = 0;
@@ -31,8 +42,12 @@ class World {
 	var babyInterval = 5;
 	var lastUpdateTime = .0;
 	var elapsed = .0;
+	var removed:Array<Object>;
+	
 	
 	public function new() {
+		removed = [];
+		
 		size = {
 			width: 1000,
 			height: 1000,
@@ -42,9 +57,26 @@ class World {
 		var enums = Type.allEnums(CollectibleType);
 		for (i in 0...10) createCollectible(enums[Std.random(enums.length)]);
 		for (i in 0...10) createBaby();
-		for (i in 0...5) createWall();
+		//for (i in 0...5) createWall();
 		
 		lastUpdateTime = Timer.stamp();
+		
+		startGame();
+	}
+	
+	function startGame()
+	{
+
+		
+		startTime = Timer.stamp();
+		remainingTime = GAME_TIME;
+		status = RUNNING;
+	}
+	
+	function stopGame()
+	{
+		remainingTime = 10;//time between two games
+		status = ENDED;
 	}
 
 	public function insert(object:Object) {
@@ -71,15 +103,17 @@ class World {
 				score:0,
 				nappyCount:0,
 				bottleCount:0,
-				comforterCount:0
+				comforterCount:0,
+				stun:0,
+				trapCount:0
 			}),
 			color: 0xfffffff,
-			width: 40,
-			height:40,
+			width: 32,
+			height:16,
 			dir: Math.random() * Math.PI * 2,
 			speed: 3,
-			x: Std.random(size.width),
-			y: Std.random(size.height),
+			x: Std.random(size.width - 32),
+			y: Std.random(size.height - 16),
 			depth: 3,
 		});
 	}
@@ -93,15 +127,17 @@ class World {
 				score:0,
 				nappyCount:0,
 				bottleCount:0,
-				comforterCount:0
+				comforterCount:0,
+				stun:0,
+				trapCount:0
 			}),
 			color: Std.random(1 << 24),
-			width: 40,
-			height: 40,
+			width: 32,
+			height: 16,
 			dir: Math.random() * Math.PI * 2,
-			speed: 1,
-			x: Std.random(size.width),
-			y: Std.random(size.height),
+			speed: 3,
+			x: Std.random(size.width - 32),
+			y: Std.random(size.height - 16),
 			depth: 2,
 		});
 	}
@@ -111,12 +147,12 @@ class World {
 			id: count++,
 			type: Collectible(type),
 			color: Std.random(1 << 24),
-			width: 10,
-			height: 10,
+			width: 32,
+			height: 32,
 			dir: Math.random() * Math.PI * 2,
 			speed: 0,
-			x: Std.random(size.width),
-			y: Std.random(size.height),
+			x: Std.random(size.width - 32),
+			y: Std.random(size.height - 32),
 			depth: 1,
 		});
 	}
@@ -131,21 +167,22 @@ class World {
 			height: 32,
 			dir: Math.random() * Math.PI * 2,
 			speed: 0,
-			x: babyCount%10 * 100,
-			y: Std.int(babyCount/9)*100+100,
+			x: Std.random(size.width - 32),
+			y: Std.random(size.height - 32),
 			depth: 1,
 		});
 	}
 	
 	public function createWall()
 	{
-		var w = Std.random(490) + 10;
+		var w = (Std.random(2) == 1)? Std.random(470)+30 : 30;
+		var h = (w == 30)? Std.random(470) + 30 : 30;
 		return insert({
 			id: count++,
 			type: Wall,
 			color: 0,
 			width: w,
-			height: Std.random(500-w)+10,
+			height: h,
 			dir: Math.random() * Math.PI * 2,
 			speed: 0,
 			x: Std.random(size.width),
@@ -153,18 +190,94 @@ class World {
 			depth: 1,
 		});
 	}
-
+	
+	public function dropTrap(player:game.Object):Object
+	{
+		switch (player.type)
+		{
+			case Player(pp), Ai(pp):
+				if (pp.trapCount < 1)
+					return null;
+				else
+					pp.trapCount--;
+				
+			default:
+		}
+		var px = player.x + Math.cos(player.dir + Math.PI ) * 40;
+		var py = player.y + Math.sin(player.dir + Math.PI) * 40;
+		return insert({
+			id: count++,
+			type: Trap,
+			color: 0,
+			width: 32,
+			height: 32,
+			dir: Math.random() * Math.PI * 2,
+			speed: 0,
+			x: px,
+			y: py,
+			depth: 1,
+		});
+	}
+	function reset()
+	{
+		for (object in objects)
+		{
+			switch(object.type)
+			{
+				case Ai(pp),Player(pp) :
+					pp.score = 0;
+					pp.nappyCount = 0;
+					pp.comforterCount = 0;
+					pp.bottleCount = 0;
+					pp.stun = 0;
+					pp.trapCount = 0;
+				default:
+			}
+		}
+	}	
+	
 	public function update():GameState
 	{
+		removed = [];
 		elapsed = Timer.stamp() - lastUpdateTime;
+		
+		remainingTime -= elapsed;
+		if (status == RUNNING && remainingTime <= 0)
+		{
+			stopGame();
+		}
+		else
+		if (status == ENDED && remainingTime <= 0)
+		{
+			reset();
+			startGame();
+		}
+		
 		for (object in objects)
 		{
 			//AI
 			switch(object.type)
 			{
+				case Player(pp):
+					if (pp.stun > 0)
+					{
+						object.speed = 0;
+						pp.stun -= elapsed;
+					}
 				case Ai(pp) :
-					if (Math.random() < 0.1) 
-						object.dir += Math.random() - 0.5;
+					if (pp.stun > 0)
+					{
+						object.speed = 0;
+						pp.stun -= elapsed;
+					}
+					else
+					{
+						if (Math.random() < 0.1) 
+						{
+							object.speed = 3;
+							object.dir += Math.random() - 0.5;
+						}
+					}
 						
 				case Baby(props) :
 
@@ -183,7 +296,7 @@ class World {
 							if (Math.random() < 0.01)
 							{
 								object.dir += Math.random() - 0.5;
-								object.speed = 3;
+								object.speed = babyBaseSpeed;
 							}
 						}
 					}
@@ -201,7 +314,6 @@ class World {
 			if (object.speed != 0) 
 			{
 				
-				
 				// update object positions by their speed and direction
 				object.x += Math.cos(object.dir) * object.speed;
 				object.y += Math.sin(object.dir) * object.speed;
@@ -212,9 +324,9 @@ class World {
 					object.dir = Math.random() * Math.PI * 2;
 				}	
 				else
-				if (object.x > size.width)
+				if (object.x + object.width > size.width)
 				{
-					object.x = size.width;
+					object.x = size.width - object.width;
 					object.dir = Math.random() * Math.PI * 2;
 				}	
 				if (object.y < 0)
@@ -223,16 +335,16 @@ class World {
 					object.dir = Math.random() * Math.PI * 2;
 				}
 				else
-				if (object.y > size.height)
+				if (object.y + object.height > size.height)
 				{
-					object.y = size.height;
+					object.y = size.height - object.height;
 					object.dir = Math.random() * Math.PI * 2;
 				}
 			}
 		}
 		
 		// detect collisions and make larger objects consume smaller objects
-		var removed = [];
+		
 		
 		for (object in objects) 
 		{
@@ -300,6 +412,10 @@ class World {
 									}
 									removed.push(other);
 									
+								case Trap:
+									objectProps.stun = 2.;
+									removed.push(other);
+									
 								case Baby(bp):
 									//need to check if baby need something
 									separate(object);
@@ -312,6 +428,7 @@ class World {
 													objectProps.bottleCount--;
 													objectProps.score += 10;
 													bp.need = null;
+													objectProps.trapCount++;
 												}
 											case Comforter:
 												if (objectProps.comforterCount > 0)
@@ -319,6 +436,7 @@ class World {
 													objectProps.comforterCount--;
 													objectProps.score += 20;
 													bp.need = null;
+													objectProps.trapCount++;
 												}
 											case Nappy :
 												if (objectProps.nappyCount > 0)
@@ -326,6 +444,7 @@ class World {
 													objectProps.nappyCount--;
 													objectProps.score += 30;
 													bp.need = null;
+													objectProps.trapCount++;
 												}
 										}
 									
@@ -364,6 +483,8 @@ class World {
 		return {
 			objects: objects,
 			removed: removed,
+			remainingTime:remainingTime,
+			status:status
 		}
 	}
 	

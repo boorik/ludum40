@@ -4,13 +4,19 @@ import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.FlxSprite;
 import flixel.FlxState;
+import flixel.addons.display.FlxTiledSprite;
+import flixel.effects.particles.FlxEmitter;
 import flixel.group.FlxGroup;
 import flixel.math.FlxRect;
 import flixel.text.FlxText;
+import flixel.tweens.FlxTween;
 import flixel.ui.FlxButton;
 import flixel.math.FlxMath;
 import flixel.math.FlxPoint;
+import flixel.util.FlxAxes;
 import flixel.util.FlxColor;
+import flixel.util.FlxSort;
+import game.GameState.GameStatus;
 
 using flixel.util.FlxSpriteUtil;
 
@@ -36,6 +42,7 @@ class PlayState extends FlxState
 	var wsError = false;
 	var sprites:IntMap<FlxSprite>;
 	var statusText:FlxText;
+	var lastStatus = ENDED;
 	
 	//debug var
 	var worldUpdateTime:Float;
@@ -53,13 +60,15 @@ class PlayState extends FlxState
 	var hudCam:flixel.FlxCamera;
 	var deadzoneOverlay:flixel.FlxSprite;
 	
+	var explosionsEmitters:FlxTypedGroup<FlxEmitter>;
+	
 	override public function create():Void
 	{
 		//debug
 		FlxG.watch.add(this,'worldUpdateTime');
 		FlxG.watch.add(this,'worldTreat');
 		FlxG.watch.add(this, 'stateUpdate');
-		
+
 		FlxG.camera.zoom = 2;
 
 		trace("built at " + BuildInfo.getBuildDate());
@@ -68,15 +77,19 @@ class PlayState extends FlxState
 		statusText.setFormat(20,flixel.util.FlxColor.WHITE);
 		statusText.screenCenter();
 		
-		var floor = new FlxSprite(0, 0);
-		floor.makeGraphic(1000, 1000, FlxColor.GRAY);
+		var floor = new FlxTiledSprite(AssetPaths.world_0__png, 1000, 1000);
 		add(floor);
+		
+		explosionsEmitters = new FlxTypedGroup<FlxEmitter>();
+		add(explosionsEmitters);
 		
 		entities = new FlxGroup();
 		add(entities);
 		
 		hud = new HUD();
 		add(hud);
+		addHudCam();
+		
 
 		sprites = new IntMap<FlxSprite>();
 		if(Globals.online)
@@ -119,43 +132,13 @@ class PlayState extends FlxState
 		super.create();
 	}
 	
-	function addHud()
+	function addHudCam()
 	{
 		hudCam = new FlxCamera(0, 0, hud.width, hud.height);
 		hudCam.zoom = 1; // For 1/2 zoom out.
 		hudCam.follow(hud.background, FlxCameraFollowStyle.NO_DEAD_ZONE);
-		hudCam.alpha = .5;
+		//hudCam.alpha = .5;
 		FlxG.cameras.add(hudCam);
-	}
-	
-	function drawDeadzone() 
-	{
-		deadzoneOverlay.fill(FlxColor.TRANSPARENT);
-		var dz:FlxRect = FlxG.camera.deadzone;
-		if (dz == null)
-			return;
-
-		var lineLength:Int = 20;
-		var lineStyle:LineStyle = { color: FlxColor.WHITE, thickness: 3 };
-		
-		// adjust points slightly so lines will be visible when at screen edges
-		dz.x += lineStyle.thickness / 2;
-		dz.width -= lineStyle.thickness;
-		dz.y += lineStyle.thickness / 2;
-		dz.height -= lineStyle.thickness;
-		
-		// Left Up Corner
-		deadzoneOverlay.drawLine(dz.left, dz.top, dz.left + lineLength, dz.top, lineStyle);
-		deadzoneOverlay.drawLine(dz.left, dz.top, dz.left, dz.top + lineLength, lineStyle);
-		// Right Up Corner
-		deadzoneOverlay.drawLine(dz.right, dz.top, dz.right - lineLength, dz.top, lineStyle);
-		deadzoneOverlay.drawLine(dz.right, dz.top, dz.right, dz.top + lineLength, lineStyle);
-		// Bottom Left Corner
-		deadzoneOverlay.drawLine(dz.left, dz.bottom, dz.left + lineLength, dz.bottom, lineStyle);
-		deadzoneOverlay.drawLine(dz.left, dz.bottom, dz.left, dz.bottom - lineLength, lineStyle);
-		// Bottom Right Corner
-		deadzoneOverlay.drawLine(dz.right, dz.bottom, dz.right - lineLength, dz.bottom, lineStyle);
-		deadzoneOverlay.drawLine(dz.right, dz.bottom, dz.right, dz.bottom - lineLength, lineStyle);
 	}
 
 	function showServerUnreachable()
@@ -195,11 +178,160 @@ class PlayState extends FlxState
 			state = world.update();
 			worldUpdateTime = Timer.stamp() - b;
 		}
+		
+		switch(state.status)
+		{
+			case RUNNING :
+				if (lastStatus != RUNNING)
+				{
+					hud.resetRanking();
+					hud.showAnnounce("GAME STARTED!!!!");
+				}
+				lastStatus = RUNNING;
+				
+			case ENDED :
+				if (lastStatus != ENDED)
+				{
+					hud.showAnnounce("GAME OVER");
+				}
+				lastStatus = ENDED;
+		}
+		hud.setTime(state.remainingTime);
 
 		// handle move
+		handlePlayerInput();
+		
+		var bo = Timer.stamp();
+		for(object in state.objects) 
+		{
+			var s:FlxSprite = null;
+			if(!sprites.exists(object.id))
+			{
+				spawnObject(object);
+			}
+			else
+			{
+				s = sprites.get(object.id);
+				s.setPosition(object.x, object.y);
+				switch(object.type)
+				{
+					case Player(pp), Ai(pp):
+						var pSprite:PlayerSprite = cast s;
+						if (object.id == id)
+						{
+							//GUI update
+							hud.updateVar(pp);
+						}
+						hud.updateRanking(pp);
+						
+						if (pp.stun > 0 )
+						{
+							if (pSprite.body.animation.name == "idle")
+								shitExplosion(pSprite.x, pSprite.y);
+								
+							pSprite.body.animation.play("stun");
+						}
+						else
+							pSprite.body.animation.play("idle");
+								
+						
+						
+					case Baby(bp):
+						var bb:BabySprite = cast s;
+						if (bp.need != null)
+						{	
+							
+							if (bb.need == null)
+							{
+								bb.animation.play("crying");
+								
+								var bubble = new Bubble(bb.x, bb.y - 32);
+								entities.add(bubble);
+								bb.linkedObjects.push(bubble);
+								var n = new CollectibleSprite(bb.x, bb.y - 31, bp.need);
+								entities.add(n);
+								bb.linkedObjects.push(n);
+								bb.need = bp.need;
+							}
+						}
+						else
+						{
+							if (bb.need != null)
+							{
+								bb.need = null;
+								while (bb.linkedObjects.length > 0)
+									bb.linkedObjects.pop().kill();
+								//FEEDBACK NEEDED BABY IS OK
+								
+							}
+							if (object.speed == 0)
+							{
+								s.animation.play("idle");
+							}
+							else
+								s.animation.play("moving");
+						}
+					default:
+				}
+				
+				
+				//lixel.tweens.FlxTween.tween(s,{x:object.x,y:object.y});
+			}
+
+		}
+		worldTreat = Timer.stamp()-bo;
+		for(object in state.removed)
+		{
+			if(sprites.exists(object.id))
+			{
+				//trace('removing ${object.id}');
+				var s = sprites.get(object.id);
+				s.kill();
+				//entities.remove(s);
+				sprites.remove(object.id);
+			}else{
+				trace('object ${object.id} not found');
+			}
+		}
+		super.update(elapsed);
+		try{
+		entities.sort(cast FlxSort.byY, FlxSort.ASCENDING);
+		}catch (e:Dynamic)
+		{
+			trace(entities.toString());
+		}
+		stateUpdate = Timer.stamp() - su;
+	}
+	
+	function shitExplosion(X:Float,Y:Float)
+	{
+		var explosionEmitter:FlxEmitter = explosionsEmitters.getFirstAvailable(FlxEmitter);
+		if (explosionEmitter == null)
+		{
+			explosionEmitter = new FlxEmitter();
+			explosionEmitter.makeParticles(5, 5, FlxColor.BROWN);
+			explosionEmitter.lifespan.set(0.1, 0.5);
+			explosionEmitter.speed.set(100,300);
+		}
+		explosionEmitter.setPosition(X, Y);
+		explosionsEmitters.add(explosionEmitter);
+		explosionEmitter.start();
+	}
+	
+	inline function handlePlayerInput()
+	{
 		var player = state.objects.find(function(o) return o.id == id);
 		if(player != null) 
 		{
+			if (FlxG.keys.justPressed.SPACE)
+			{
+				if (Globals.online)
+				{
+					ws.sendString(Serializer.run(DropTrap));
+				}else
+					world.dropTrap(player);
+			}
+			
 			// move player
 			var mid = new FlxPoint(FlxG.width/2,FlxG.height/2);
 			if(FlxG.mouse.pressed)
@@ -231,117 +363,48 @@ class PlayState extends FlxState
 				}
 			}			
 		}
-		var bo = Timer.stamp();
-		for(object in state.objects) 
+	}
+	
+	inline function spawnObject(object:Object)
+	{
+		var s:flixel.FlxSprite;
+		switch(object.type)
 		{
-			var s:FlxSprite = null;
-			if(!sprites.exists(object.id))
-			{
-				switch(object.type)
-				{
-					case Player(pp), Ai(pp):
-						trace(object);
-						s = cast entities.recycle(FlxSprite);
-						if(object.id == id)
-						{
-							trace("PLAYER FOUND");
-							s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.RED);
-							FlxG.camera.follow(s);
-							addHud();
-						}
-
-						else
-							s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.fromInt(object.color + 0xFF000000));
-					
-					case Collectible(ct):
-						s = new CollectibleSprite(0, 0, ct);
-						
-					case Baby(pp):
-						s = cast entities.recycle(BabySprite);
-						
-					case Wall:
-						s = cast entities.recycle(FlxSprite);
-						s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.BLACK);
-				}	
-				s.setPosition(object.x, object.y);
-				entities.add(s);
+			case Player(pp), Ai(pp):
+				var ps:PlayerSprite = null;
 				
-
-				sprites.set(object.id,s);
-
-			}
-			else
-			{
-				s = sprites.get(object.id);
-				s.setPosition(object.x, object.y);
-				switch(object.type)
+				if(object.id == id)
 				{
-					case Player(pp), Ai(pp):
-						if (object.id == id)
-						{
-							//GUI update
-							hud.updateVar(pp);
-						}
-					case Baby(bp):
-						var bb:BabySprite = cast s;
-						if (bp.need != null)
-						{	
-							
-							if (bb.need == null)
-							{
-								bb.animation.play("crying");
-								
-								var bubble = new Bubble(bb.x, bb.y - 32);
-								entities.add(bubble);
-								bb.linkedObjects.push(bubble);
-								var n = new CollectibleSprite(bb.x, bb.y - 32, bp.need);
-								entities.add(n);
-								bb.linkedObjects.push(n);
-								bb.need = bp.need;
-							}
-						}
-						else
-						{
-							if (bb.need != null)
-							{
-								bb.need = null;
-								while (bb.linkedObjects.length > 0)
-									entities.remove(bb.linkedObjects.pop());
-								//FEEDBACK NEEDED BABY IS OK
-								
-							}
-							if (object.speed == 0)
-							{
-								s.animation.play("idle");
-							}
-							else
-								s.animation.play("moving");
-						}
-					default:
+					trace("PLAYER FOUND");
+					ps = new PlayerSprite(0, 0, "ME", 0xFF0000);
+					FlxG.camera.follow(ps,1);
+					//addHudCam();
 				}
+				else	
+					ps = new PlayerSprite(0, 0, pp.name,object.color);
+					
+				//entities.add(ps.nameText);
+				s = ps;
+			
+			case Collectible(ct):
+				s = new CollectibleSprite(0, 0, ct);
 				
+			case Baby(pp):
+				s = cast entities.recycle(BabySprite);
 				
-				//lixel.tweens.FlxTween.tween(s,{x:object.x,y:object.y});
-			}
+			case Wall:
+				s = cast entities.recycle(FlxSprite);
+				s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.BLACK);
+				
+			case Trap:
+				s = cast entities.recycle(DirtyNappySprite);
+		}	
+		s.setPosition(object.x, object.y);
+		entities.add(s);
+		
 
-		}
-		worldTreat = Timer.stamp()-bo;
-		for(object in state.removed)
-		{
-			if(sprites.exists(object.id))
-			{
-				trace('removing ${object.id}');
-				var s = sprites.get(object.id);
-				s.kill();
-				entities.remove(s);
-				sprites.remove(object.id);
-			}else{
-				trace('object ${object.id} not found');
-			}
-		}
+		sprites.set(object.id,s);
 
-		super.update(elapsed);
-		stateUpdate = Timer.stamp() - su;
 	}
 
 	function exit()

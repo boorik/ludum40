@@ -165,6 +165,9 @@ class GameServer {
 									var m = Serializer.run(Message.Pong);
 									trace(m);
 									client.connection.sendString(m);
+									
+								case DropTrap:
+									if(client.player != null) world.dropTrap(client.player);
 							}
 						};
 					clients.push(client);
