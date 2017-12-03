@@ -70,12 +70,19 @@ class PlayState extends FlxState
 		FlxG.watch.add(this, 'stateUpdate');
 
 		FlxG.camera.zoom = 2;
+		//FlxG.camera.bgColor = 0x55FF80C0;
 
 		trace("built at " + BuildInfo.getBuildDate());
 
 		statusText = new FlxText(0,0,300,"Connecting, please wait...");
 		statusText.setFormat(20,flixel.util.FlxColor.WHITE);
 		statusText.screenCenter();
+		
+		//var bg = new FlxSprite(0, 0);
+		//bg.makeGraphic(FlxG.width, FlxG.height, FlxColor.PINK);
+		////bg.scrollFactor.set(0, 0);
+		//add(bg);
+		
 		
 		var floor = new FlxTiledSprite(AssetPaths.world_0__png, 1000, 1000);
 		add(floor);

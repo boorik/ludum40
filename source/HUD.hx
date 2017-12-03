@@ -177,7 +177,7 @@ class HUD extends FlxGroup
 				return 1;
 			return 0;
 		});
-		var st:String = "";
+		var st:String = "RANKING\n";
 		for (i in 0...scores.length)
 		{
 			var s = scores[i];
