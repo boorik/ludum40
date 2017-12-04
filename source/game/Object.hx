@@ -41,7 +41,6 @@ typedef Object = {
 	height:Float,
 	dir:Float,
 	speed:Float,
-	depth:Float,
 	x:Float,
 	y:Float,
 }

@@ -95,7 +95,7 @@ class PlayState extends FlxState
 		entities = new FlxGroup();
 		add(entities);
 		
-		hud = new HUD();
+		hud = new HUD(dropTrap);
 		add(hud);
 		addHudCam();
 		
@@ -349,6 +349,17 @@ class PlayState extends FlxState
 		explosionsEmitters.add(explosionEmitter);
 		explosionEmitter.start();
 	}
+
+	function dropTrap()
+	{
+		if (Globals.online)
+		{
+			ws.sendString(Serializer.run(DropTrap));
+		}else{
+			var player = state.objects.find(function(o) return o.id == id);
+			world.dropTrap(player);
+		}
+	}
 	
 	inline function handlePlayerInput()
 	{
@@ -356,13 +367,7 @@ class PlayState extends FlxState
 		if(player != null) 
 		{
 			if (FlxG.keys.justPressed.SPACE)
-			{
-				if (Globals.online)
-				{
-					ws.sendString(Serializer.run(DropTrap));
-				}else
-					world.dropTrap(player);
-			}
+				dropTrap();
 			
 			// move player
 			var mid = new FlxPoint(FlxG.width/2,FlxG.height/2);

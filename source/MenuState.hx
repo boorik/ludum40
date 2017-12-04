@@ -37,10 +37,10 @@ class MenuState extends FlxState
 		FlxTween.tween(titleText, {x:200}, 0.5);
 		
 		var alphaText = new FlxText(FlxG.width,200,0,'ALPHA 3');
-		alphaText.setFormat(40, flixel.util.FlxColor.BLACK);
+		alphaText.setFormat(30, flixel.util.FlxColor.BLACK);
 		add(alphaText);
 		
-		FlxTween.tween(alphaText, {x:500}, 1);
+		FlxTween.tween(alphaText, {x:600}, 1);
 
 		popText = new FlxText(0,0,0,'Earth population : $pop');
 		popText.setFormat(12, flixel.util.FlxColor.BLACK);
@@ -60,6 +60,12 @@ class MenuState extends FlxState
 		var multiButton = UITools.getButton(0,FlxG.height - 55, 300, 50, "Play online", playMulti);
 		multiButton.screenCenter(flixel.util.FlxAxes.X);
 		add(multiButton);
+
+		var t = new FlxText(0, 0, 0, 'by Vincent Blanchet for LD XL');
+		t.setFormat(12, flixel.util.FlxColor.BLACK);
+		t.x = FlxG.width - t.width -5;
+		t.y = FlxG.height - t.height -5;
+		add(t);
 	}
 
 	function playSolo()

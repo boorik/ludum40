@@ -27,6 +27,7 @@ class World {
 	var count:Int = 0;
 	var AICount = 0;
 	var babyCount = 0;
+	var collectibleCount = 0;
 	
 	//collision calculation helpers
 	var w = .0;
@@ -56,7 +57,7 @@ class World {
 		for (i in 0...10) createAi();
 		var enums = Type.allEnums(CollectibleType);
 		for (i in 0...10) createCollectible(enums[Std.random(enums.length)]);
-		for (i in 0...10) createBaby();
+		for (i in 0...15) createBaby();
 		//for (i in 0...5) createWall();
 		
 		lastUpdateTime = Timer.stamp();
@@ -114,7 +115,6 @@ class World {
 			speed: 3,
 			x: Std.random(size.width - 32),
 			y: Std.random(size.height - 16),
-			depth: 3,
 		});
 	}
 
@@ -138,11 +138,11 @@ class World {
 			speed: 3,
 			x: Std.random(size.width - 32),
 			y: Std.random(size.height - 16),
-			depth: 2,
 		});
 	}
 
 	public function createCollectible(type:CollectibleType) {
+		collectibleCount++;
 		return insert({
 			id: count++,
 			type: Collectible(type),
@@ -153,7 +153,6 @@ class World {
 			speed: 0,
 			x: Std.random(size.width - 32),
 			y: Std.random(size.height - 32),
-			depth: 1,
 		});
 	}
 	
@@ -169,7 +168,6 @@ class World {
 			speed: 0,
 			x: Std.random(size.width - 32),
 			y: Std.random(size.height - 32),
-			depth: 1,
 		});
 	}
 	
@@ -187,7 +185,6 @@ class World {
 			speed: 0,
 			x: Std.random(size.width),
 			y: Std.random(size.height),
-			depth: 1,
 		});
 	}
 	
@@ -214,8 +211,7 @@ class World {
 			dir: Math.random() * Math.PI * 2,
 			speed: 0,
 			x: px,
-			y: py,
-			depth: 1,
+			y: py
 		});
 	}
 	function reset()
@@ -276,6 +272,10 @@ class World {
 						{
 							object.speed = 3;
 							object.dir += Math.random() - 0.5;
+						}
+						if(pp.trapCount > 0 && Math.random() < 0.1)
+						{
+							dropTrap(object);
 						}
 					}
 						
@@ -471,7 +471,9 @@ class World {
 			
 				case Collectible(ct) : 
 					// replenish collectible
-					createCollectible(ct);
+					collectibleCount--;
+					if(collectibleCount < 10)
+						createCollectible(ct);
 					
 				default:
 			}

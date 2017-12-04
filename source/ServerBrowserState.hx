@@ -83,7 +83,7 @@ class ServerBrowserState extends FlxState
                     {
 						
 						
-                        log(Std.string(g));
+                        //log(Std.string(g));
                         var gameButton = tools.UITools.getButton(0,posY,500,50,'${g.name} ${g.playerNumber}/${g.maxPlayer} , latency :', function(){
                             Globals.online = true;
                             Globals.game = g;

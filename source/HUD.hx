@@ -8,7 +8,7 @@ import flixel.util.FlxAxes;
 import flixel.util.FlxColor;
 import game.Object.PlayerProps;
 import haxe.Timer;
-import haxe.ds.StringMap;
+import flixel.addons.ui.FlxUIButton;
 
 /**
  * ...
@@ -26,6 +26,7 @@ class HUD extends FlxGroup
 	var needeedTimeForUpdate = 1.;
 	var remainingBeforeUpdate = 0.;
 	var announce:flixel.text.FlxText;
+	var dropButton:FlxUIButton;
 	
 	public var background:flixel.FlxSprite;
 	public var width = FlxG.width;
@@ -35,7 +36,7 @@ class HUD extends FlxGroup
 	var timerText:flixel.text.FlxText;
 	var trapCounter:flixel.text.FlxText;
 	var me:PlayerProps;
-	public function new() 
+	public function new(onDrop:Void->Void) 
 	{
 		super();
 		
@@ -104,6 +105,10 @@ class HUD extends FlxGroup
 	
 		timerText.x = x + (FlxG.width - timerText.width) / 2;
 		add(timerText);
+
+		dropButton = tools.UITools.getButton(0, FlxG.height - 40, 200, 30, "Drop trap (0)", onDrop);
+		dropButton.screenCenter(flixel.util.FlxAxes.X);
+		add(dropButton);
 	}
 	
 	public function showAnnounce(msg:String, time:Int = 500)
@@ -196,6 +201,7 @@ class HUD extends FlxGroup
 		nappyCounter.text = Std.string(pp.nappyCount);
 		score.text = 'score: ${pp.score}';
 		trapCounter.text = Std.string(pp.trapCount);
+		dropButton.label.text = 'Drop trap (${pp.trapCount})';
 	}
 	
 	override public function update(elapsed:Float)
