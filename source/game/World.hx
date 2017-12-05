@@ -89,8 +89,15 @@ class World {
 		objects.remove(object);
 		switch(object.type)
 		{
-			case Player(pp):
+			case Player(pp) :
 				playerNumber--;
+		
+			case Collectible(ct) : 
+				// replenish collectible
+				collectibleCount--;
+				if(collectibleCount < 10)
+					createCollectible(ct);
+				
 			default:
 		}
 	}
@@ -401,20 +408,25 @@ class World {
 										}
 									}
 								case Collectible(cType):
-									switch(cType)
+									if(removed.indexOf(other) == -1)
 									{
-										case Bottle:
-											objectProps.bottleCount++;
-										case Comforter:
-											objectProps.comforterCount++;
-										case Nappy:
-											objectProps.nappyCount++;
+										removed.push(other);
+										switch(cType)
+										{
+											case Bottle:
+												objectProps.bottleCount++;
+											case Comforter:
+												objectProps.comforterCount++;
+											case Nappy:
+												objectProps.nappyCount++;
+										}
 									}
-									removed.push(other);
+
 									
 								case Trap:
 									objectProps.stun = 2.;
-									removed.push(other);
+									if(removed.indexOf(other) == -1)
+										removed.push(other);
 									
 								case Baby(bp):
 									//need to check if baby need something
@@ -462,22 +474,7 @@ class World {
 		for(object in removed) {
 			
 			// actually remove the objects
-			remove(object);
-			
-			switch(object.type)
-			{
-				case Player(pp) :
-					playerNumber--;
-			
-				case Collectible(ct) : 
-					// replenish collectible
-					collectibleCount--;
-					if(collectibleCount < 10)
-						createCollectible(ct);
-					
-				default:
-			}
-			
+			remove(object);		
 		}
 
 		lastUpdateTime = Timer.stamp();
