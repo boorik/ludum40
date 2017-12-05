@@ -524,4 +524,28 @@ class World {
 			}
 		}
 	}
+
+	public function getStats():{p:Int, bb:Int, coll:Int, ai:Int,t:Int}
+	{
+		var stats = { p:0,bb:0,coll:0,ai:0, t:0};
+		for(o in objects)
+		{
+			switch(o.type)
+			{
+				case Player(pp) :
+					stats.p += 1;
+				case Ai(pp):
+					stats.ai += 1;
+				case Collectible(ct):
+					stats.coll += 1;
+				case Baby(bp):
+					stats.bb += 1;
+				case Trap:
+					stats.t +=1;
+				case Wall:
+				
+			}
+		}
+		return stats;
+	}
 }

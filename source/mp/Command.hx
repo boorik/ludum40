@@ -7,5 +7,10 @@ enum Command {
 	StartMove;
 	StopMove;
 	DropTrap;
+	Adm(pw:String,cmd:AdmCmd);
 	Ping;
+}
+
+enum AdmCmd{
+	ST;//statistics
 }

@@ -1,0 +1,13 @@
+-cp source
+-main tools.CLI
+
+--each
+
+-neko bin/cli/neko/cli.n
+#-js bin/server/js/server.js
+#-lib haxe-ws
+#-lib hxnodejs
+
+--next 
+
+-cpp bin/cli/cpp

@@ -8,4 +8,5 @@ enum Message {
 	Full;
 	State(state:GameState);
 	Pong;
+	RST(st:Stats);
 }
