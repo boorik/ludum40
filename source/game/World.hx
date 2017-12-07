@@ -209,6 +209,17 @@ class World {
 		}
 		var px = player.x + Math.cos(player.dir + Math.PI ) * 40;
 		var py = player.y + Math.sin(player.dir + Math.PI) * 40;
+		
+		if(px < 0)
+			px = 0;
+		else if (px + 32 > size.width)
+			px = size.width - 32;
+
+		if(py < 0)
+			py = 0;
+		else if(py + 32 > size.height)
+			py = size.height - 32;
+
 		return insert({
 			id: count++,
 			type: Trap,
