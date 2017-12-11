@@ -361,7 +361,7 @@ class World {
 			}
 		}
 		
-		// detect collisions and make larger objects consume smaller objects
+		// detect collisions
 		
 		
 		for (object in objects) 
@@ -395,13 +395,13 @@ class World {
 										if (wy > -hx)
 										{
 											//collision at the top
-											object.y -= Math.sin(object.dir) * object.speed;
+											object.y = other.y + other.height +1;
 											
 										}
 										else
 										{
 											//collision on the left
-											object.x -= Math.cos(object.dir) * object.speed;
+											object.x = other.x - object.width - 1;
 										}
 									}
 									else
@@ -409,13 +409,14 @@ class World {
 										if (wy > - hx)
 										{
 											//right
-											object.x -= Math.cos(object.dir) * object.speed;
+											object.x = other.x + other.width+1;
 											
 										}
 										else
 										{
 											//bottom
-											object.y -= Math.sin(object.dir) * object.speed;
+											
+											object.y = other.y - object.height - 1;
 										}
 									}
 								case Collectible(cType):
