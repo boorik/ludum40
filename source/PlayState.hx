@@ -88,7 +88,7 @@ class PlayState extends FlxState
 		
 		var floor = new FlxTiledSprite(AssetPaths.world_0__png, 1000, 1000);
 		add(floor);
-		
+
 		explosionsEmitters = new FlxTypedGroup<FlxEmitter>();
 		add(explosionsEmitters);
 		

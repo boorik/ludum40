@@ -1,6 +1,7 @@
 package game;
 import game.GameState.GameStatus;
 import game.Object.CollectibleType;
+import game.QuadTree;
 import haxe.Timer;
 
 
@@ -44,6 +45,9 @@ class World {
 	var lastUpdateTime = .0;
 	var elapsed = .0;
 	var removed:Array<Object>;
+
+	//collision
+	var quad:QuadTree;
 	
 	
 	public function new() {
@@ -53,6 +57,8 @@ class World {
 			width: 1000,
 			height: 1000,
 		}
+
+		quad = new QuadTree(0,new Rectangle(0, 0, size.width, size.height));
 
 		for (i in 0...10) createAi();
 		var enums = Type.allEnums(CollectibleType);
@@ -267,8 +273,10 @@ class World {
 			startGame();
 		}
 		
+		quad.clear();
 		for (object in objects)
 		{
+			quad.insert(object);
 			//AI
 			switch(object.type)
 			{
@@ -360,13 +368,13 @@ class World {
 				}
 			}
 		}
-		
+		var list = new List<Object>();
 		// detect collisions
-		
-		
 		for (object in objects) 
 		{
-			for (other in objects) 
+			list.clear();
+			quad.retrieve(object,list);
+			for (other in list) 
 			{
 				if (object.id == other.id)
 					continue;
