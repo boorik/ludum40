@@ -52,6 +52,7 @@ class PlayState extends FlxState
 	var updateCount:Int; //for some sort of median
 
 	//layers
+	var collectibles:FlxGroup;
 	var entities:FlxGroup;
 	var hud:HUD;
 	
@@ -92,6 +93,9 @@ class PlayState extends FlxState
 		explosionsEmitters = new FlxTypedGroup<FlxEmitter>();
 		add(explosionsEmitters);
 		
+		collectibles = new FlxGroup();
+		add(collectibles);
+
 		entities = new FlxGroup();
 		add(entities);
 		
@@ -260,14 +264,6 @@ class PlayState extends FlxState
 							
 							if (bb.need == null)
 							{
-								bb.animation.play("crying");
-								
-								var bubble = new Bubble(bb.x, bb.y - 32);
-								entities.add(bubble);
-								bb.linkedObjects.push(bubble);
-								var n = new CollectibleSprite(bb.x, bb.y - 31, bp.need);
-								entities.add(n);
-								bb.linkedObjects.push(n);
 								bb.need = bp.need;
 							}
 						}
@@ -276,17 +272,14 @@ class PlayState extends FlxState
 							if (bb.need != null)
 							{
 								bb.need = null;
-								while (bb.linkedObjects.length > 0)
-									bb.linkedObjects.pop().kill();
-								//FEEDBACK NEEDED BABY IS OK
-								
+								//FEEDBACK NEEDED BABY IS OK								
 							}
 							if (object.speed == 0)
 							{
-								s.animation.play("idle");
+								bb.body.animation.play("idle");
 							}
 							else
-								s.animation.play("moving");
+								bb.body.animation.play("moving");
 						}
 					default:
 				}
@@ -420,22 +413,33 @@ class PlayState extends FlxState
 					ps = new PlayerSprite(0, 0, pp.name,object.color);
 					
 				s = ps;
+				entities.add(s);
 			
 			case Collectible(ct):
-				s = new CollectibleSprite(0, 0, ct);
+				s = cast switch(ct)
+				{
+					case Nappy :
+						collectibles.recycle(NappySprite);
+					case Comforter :
+						collectibles.recycle(ComforterSprite);
+					case Bottle :
+						collectibles.recycle(BottleSprite);
+				}
+				collectibles.add(s);
 				
 			case Baby(pp):
 				s = cast entities.recycle(BabySprite);
-				
+				entities.add(s);
 			case Wall:
 				s = cast entities.recycle(FlxSprite);
 				s.makeGraphic(Std.int(object.width), Std.int(object.height), FlxColor.BLACK);
-				
+				entities.add(s);
 			case Trap:
 				s = cast entities.recycle(DirtyNappySprite);
+				entities.add(s);
 		}	
 		s.setPosition(object.x, object.y);
-		entities.add(s);
+		
 		sprites.set(object.id,s);
 		trace('object ${object.id} created ${sprites.count()}');
 	}
