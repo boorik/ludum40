@@ -8,8 +8,9 @@ import haxe.Timer;
 class World {
 	
 	//consts
-	static inline var babyBaseSpeed = 2;
-	static inline var GAME_TIME = 60.;
+	public static inline var babyBaseSpeed = 100;
+	public static inline var baseSpeed = 150;
+	public static inline var GAME_TIME = 60.;
 	
 	
 	//game status
@@ -125,7 +126,7 @@ class World {
 			width: 32,
 			height:16,
 			dir: Math.random() * Math.PI * 2,
-			speed: 3,
+			speed: baseSpeed,
 			x: Std.random(size.width - 32),
 			y: Std.random(size.height - 16),
 		});
@@ -148,7 +149,7 @@ class World {
 			width: 32,
 			height: 16,
 			dir: Math.random() * Math.PI * 2,
-			speed: 3,
+			speed: baseSpeed,
 			x: Std.random(size.width - 32),
 			y: Std.random(size.height - 16),
 		});
@@ -296,7 +297,7 @@ class World {
 					{
 						if (Math.random() < 0.1) 
 						{
-							object.speed = 3;
+							object.speed = baseSpeed;
 							object.dir += Math.random() - 0.5;
 						}
 						if(pp.trapCount > 0 && Math.random() < 0.1)
@@ -341,8 +342,8 @@ class World {
 			{
 				
 				// update object positions by their speed and direction
-				object.x += Math.cos(object.dir) * object.speed;
-				object.y += Math.sin(object.dir) * object.speed;
+				object.x += Math.cos(object.dir) * object.speed * elapsed;
+				object.y += Math.sin(object.dir) * object.speed * elapsed;
 				
 				if (object.x < 0)
 				{
@@ -450,7 +451,7 @@ class World {
 									
 								case Baby(bp):
 									//need to check if baby need something
-									separate(object);
+									separate(object,other);
 									if (bp.need != null)
 										switch(bp.need)
 										{
@@ -481,7 +482,7 @@ class World {
 										}
 									
 								case Wall:
-									separate(object);
+									separate(object,other);
 									
 							}
 						default:
@@ -507,8 +508,9 @@ class World {
 		}
 	}
 	
-	function separate(object:Object)
+	function separate(object:Object,other:Object)
 	{
+		//calculate collision side for separation
 		wy = w * dy;
 		hx = h * dx;
 		
@@ -517,13 +519,13 @@ class World {
 			if (wy > -hx)
 			{
 				//collision at the top
-				object.y -= Math.sin(object.dir) * object.speed;
+				object.y = other.y + other.height +1;
 				
 			}
 			else
 			{
 				//collision on the left
-				object.x -= Math.cos(object.dir) * object.speed;
+				object.x = other.x - object.width - 1;
 			}
 		}
 		else
@@ -531,7 +533,39 @@ class World {
 			if (wy > - hx)
 			{
 				//right
-				object.x -= Math.cos(object.dir) * object.speed;
+				object.x = other.x + other.width+1;
+				
+			}
+			else
+			{
+				//bottom
+				object.y = other.y - object.height - 1;
+			}
+		}
+		/*
+		wy = w * dy;
+		hx = h * dx;
+		
+		if (wy > hx)
+		{
+			if (wy > -hx)
+			{
+				//collision at the top
+				object.y -= Math.sin(object.dir) * object.speed * elapsed;
+				
+			}
+			else
+			{
+				//collision on the left
+				object.x -= Math.cos(object.dir) * object.speed * elapsed;
+			}
+		}
+		else
+		{
+			if (wy > - hx)
+			{
+				//right
+				object.x -= Math.cos(object.dir) * object.speed * elapsed;
 				
 			}
 			else
@@ -540,5 +574,6 @@ class World {
 				object.y -= Math.sin(object.dir) * object.speed;
 			}
 		}
+		*/
 	}
 }

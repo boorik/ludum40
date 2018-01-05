@@ -376,7 +376,7 @@ class PlayState extends FlxState
 				}
 				else
 				{
-					player.speed = 3;
+					player.speed = World.baseSpeed;
 					player.dir = dir;
 				}
 			} 
